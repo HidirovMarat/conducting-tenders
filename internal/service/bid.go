@@ -4,6 +4,7 @@ import (
 	"conducting-tenders/internal/entity"
 	authorType "conducting-tenders/internal/entity/author-type"
 	"conducting-tenders/internal/entity/statusBid"
+	"conducting-tenders/internal/entity/statusTender"
 	"conducting-tenders/internal/repo"
 	"conducting-tenders/internal/repo/repoerrs"
 	"context"
@@ -347,4 +348,90 @@ func (b *BidService) UpdateVersionBid(ctx context.Context, input UpdateVersionBi
 	bidVer.Id = bidVerId
 
 	return bidVer, nil
+}
+
+func (b *BidService) UpdateSubmitDecision(ctx context.Context, input UpdateSubmitDecisionInput) (entity.Bid, error) {
+	bid, err := b.bidRepo.GetBidById(ctx, input.BidId)
+
+	if err != nil {
+		if errors.Is(err, repoerrs.ErrNotFound) {
+			return entity.Bid{}, ErrBidNotFind
+		}
+		return entity.Bid{}, err
+	}
+
+	employee, err := b.employeeRepo.GetEmployeeByUsername(ctx, input.Username)
+
+	if err != nil {
+		if errors.Is(err, repoerrs.ErrNotFound) {
+			return entity.Bid{}, ErrEmployeeNotFind
+		}
+		return entity.Bid{}, err
+	}
+
+	orgaEmpId, err := b.organizationResponsibleRepo.GetOrganizationIdByEmployeeId(ctx, employee.Id)
+
+	if err != nil {
+		if errors.Is(err, repoerrs.ErrNotFound) {
+			return entity.Bid{}, ErrOrganizationNotFind
+		}
+		return entity.Bid{}, err
+	}
+
+	tender, err := b.tenderRepo.GetTenderById(ctx, bid.TenderId)
+
+	if err != nil {
+		if errors.Is(err, repoerrs.ErrNotFound) {
+			return entity.Bid{}, ErrTenderNotFind
+		}
+		return entity.Bid{}, err
+	}
+
+	if tender.OrganizationId != orgaEmpId {
+		return entity.Bid{}, ErrNotEnoughRights
+	}
+
+	if input.Decision == "Rejected" {
+		bid.Status = statusBid.StatusCanceled
+		bid.Id = uuid.New()
+		maxVerl, err := b.bidRepo.GetBidVersionMaxByTag(ctx, bid.Tag)
+		bid.Version = maxVerl + 1
+		if err != nil {
+			return entity.Bid{}, err
+		}
+
+		_, err = b.bidRepo.CreateBid(ctx, bid)
+		if err != nil {
+			return entity.Bid{}, err
+		}
+
+		return bid, nil
+	} else {
+		tender.Id = uuid.New()
+		tender.Status = statusTender.StatusClosed
+		maxVer, err := b.tenderRepo.GetTenderVersionMaxByTag(ctx, tender.Tag)
+		if err != nil {
+			return entity.Bid{}, err
+		}
+
+		tender.Version = maxVer + 1
+		_, err = b.tenderRepo.CreateTender(ctx, tender)
+
+		bid.TenderId = tender.Id
+		bid.Id = uuid.New()
+		bid.Status = statusBid.StatusPublished
+
+		maxVerl, err := b.bidRepo.GetBidVersionMaxByTag(ctx, bid.Tag)
+		bid.Version = maxVerl + 1
+		if err != nil {
+			return entity.Bid{}, err
+		}
+
+		_, err = b.bidRepo.CreateBid(ctx, bid)
+		if err != nil {
+			return entity.Bid{}, err
+		}
+
+		return bid, nil
+	}
 }

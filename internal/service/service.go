@@ -61,6 +61,12 @@ type UpdateVersionBidInput struct {
 	Version  int       `param:"version" validate:"required,min=1"`
 }
 
+type UpdateSubmitDecisionInput struct {
+	BidId    uuid.UUID `param:"bidId" validate:"required,uuid"`
+	Username string    `query:"username" validate:"required,min=1,max=100"`
+	Decision string    `query:"decision" validate:"required,oneof=Approved Rejected"`
+}
+
 type Bid interface {
 	CreateBid(ctx context.Context, createBidInput CreateBidInput) (entity.Bid, error)
 	GetBidsByUsername(ctx context.Context, input GetBidsByUsernameInput) ([]entity.Bid, error)
@@ -69,6 +75,7 @@ type Bid interface {
 	UpdateBidStatusById(ctx context.Context, input UpdateBidStatusByIdInput) (entity.Bid, error)
 	EditBidById(ctx context.Context, input EditBidByIdInput) (entity.Bid, error)
 	UpdateVersionBid(ctx context.Context, input UpdateVersionBidInput) (entity.Bid, error)
+	UpdateSubmitDecision(ctx context.Context, input UpdateSubmitDecisionInput) (entity.Bid, error)
 }
 
 type CreateTenderInput struct {

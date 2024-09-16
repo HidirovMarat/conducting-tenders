@@ -24,10 +24,8 @@ func newBidsRoutes(g *echo.Group, bidsService service.Bid) *bidsRoutes {
 	g.GET("/:bidId/status", r.getBidStatusById)
 	g.PUT("/:bidId/status", r.updateBidStatusById)
 	g.PATCH("/:bidId/edit", r.editBidByIdAndUsername)
-	//g.PUT("/bids/{bidId}/submit_decision", editSubmitDecisionById)
-	//g.PUT("/bids/{bidId}/feedback", editFeelbackById)
+	g.PUT("/:bidId/submit_decision", r.updateSubmitDecisionById)
 	g.PUT("/:bidId/rollback/:version", r.updateVersionBid)
-	//g.GET("/bids/{tenderId}/reviews", getReviewsByTender)
 	return r
 }
 
@@ -274,4 +272,42 @@ func (r *bidsRoutes) updateVersionBid(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, bids)
+}
+
+func (r *bidsRoutes) updateSubmitDecisionById(c echo.Context) error {
+	var input service.UpdateSubmitDecisionInput
+	err := c.Bind(&input)
+
+	if err != nil {
+		c.JSON(400, map[string]interface{}{"reason": err.Error()})
+		return err
+	}
+	input.Username = c.QueryParam("username")
+	input.Decision = c.QueryParam("decision")
+
+	if err = c.Validate(input); err != nil {
+		c.JSON(400, map[string]interface{}{"reason": err.Error()})
+		return err
+	}
+
+	bids, err := r.bidsService.UpdateSubmitDecision(c.Request().Context(), input)
+
+	if err != nil {
+		if errors.Is(err, service.ErrUserNotExistOrIncorrect) {
+			return c.JSON(401, err.Error())
+		}
+		if errors.Is(err, service.ErrBidNotFind) {
+			return c.JSON(404, service.ErrBidNotFind.Error())
+		}
+		if errors.Is(err, service.ErrInvalidRequestFormatOrParameters) {
+			return c.JSON(400, err.Error())
+		}
+		if errors.Is(err, service.ErrNotEnoughRights) {
+			return c.JSON(403, err.Error())
+		}
+		return c.JSON(404, err.Error())
+	}
+
+	return c.JSON(http.StatusOK, bids)
+
 }
