@@ -55,6 +55,12 @@ type EditBidByIdInput struct {
 	Description string    `json:"description" validate:"omitempty,min=1,max=500"`
 }
 
+type UpdateVersionBidInput struct {
+	BidId    uuid.UUID `param:"bidId" validate:"required,uuid"`
+	Username string    `query:"username" validate:"required,min=1,max=100"`
+	Version  int       `param:"version" validate:"required,min=1"`
+}
+
 type Bid interface {
 	CreateBid(ctx context.Context, createBidInput CreateBidInput) (entity.Bid, error)
 	GetBidsByUsername(ctx context.Context, input GetBidsByUsernameInput) ([]entity.Bid, error)
@@ -62,6 +68,7 @@ type Bid interface {
 	GetBidStatusById(ctx context.Context, input GetBidStatusByIdInput) (statusBid.Status, error)
 	UpdateBidStatusById(ctx context.Context, input UpdateBidStatusByIdInput) (entity.Bid, error)
 	EditBidById(ctx context.Context, input EditBidByIdInput) (entity.Bid, error)
+	UpdateVersionBid(ctx context.Context, input UpdateVersionBidInput) (entity.Bid, error)
 }
 
 type CreateTenderInput struct {
@@ -103,6 +110,12 @@ type EditTenderByIdInput struct {
 	ServiceType serviceType.ServiceType `json:"serviceType" validate:"omitempty,oneof=Construction Delivery Manufacture"`
 }
 
+type UpdateVersionTenderInput struct {
+	TenderId uuid.UUID `param:"tenderId" validate:"required,uuid"`
+	Username string    `query:"username" validate:"required,min=1,max=100"`
+	Version  int       `param:"version" validate:"required,min=1"`
+}
+
 type Tender interface {
 	CreateTender(ctx context.Context, input CreateTenderInput) (entity.Tender, error)
 	GetTenders(ctx context.Context, input GetTendersInput) ([]entity.Tender, error)
@@ -110,6 +123,7 @@ type Tender interface {
 	GetTenderStatusById(ctx context.Context, input GetTenderStatusByIdInput) (statusTender.Status, error)
 	UpdateTenderStatusById(ctx context.Context, input UpdateTenderStatusByIdInput) (entity.Tender, error)
 	EditTenderById(ctx context.Context, input EditTenderByIdInput) (entity.Tender, error)
+	UpdateVersionTender(ctx context.Context, input UpdateVersionTenderInput) (entity.Tender, error)
 }
 
 type ServicesDependencies struct {

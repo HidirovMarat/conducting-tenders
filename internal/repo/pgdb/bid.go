@@ -156,3 +156,33 @@ func (r *BidRepo) GetBidById(ctx context.Context, bidId uuid.UUID) (entity.Bid, 
 
 	return bid, nil
 }
+
+func (r *BidRepo) GetBidByTagAndVersion(ctx context.Context, tag uuid.UUID, version int) (entity.Bid, error) {
+	sql, args, _ := r.Builder.
+		Select("id", "name", "description", "status", "tender_id", "author_t", "author_id", "version", "created_at", "tag").
+		From("bids").
+		Where("tag = ? and version = ?", tag, version).
+		ToSql()
+
+	var bid entity.Bid
+	err := r.Pool.QueryRow(ctx, sql, args...).Scan(
+		&bid.Id,
+		&bid.Name,
+		&bid.Description,
+		&bid.Status,
+		&bid.TenderId,
+		&bid.AuthorType,
+		&bid.AuthorId,
+		&bid.Version,
+		&bid.CreatedAt,
+		&bid.Tag,
+	)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return entity.Bid{}, repoerrs.ErrNotFound
+		}
+		return entity.Bid{}, fmt.Errorf("BidRepo.GetBidByTagAndVersion - r.Pool.QueryRow: %v", err)
+	}
+
+	return bid, nil
+}

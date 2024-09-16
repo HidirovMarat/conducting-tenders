@@ -230,3 +230,54 @@ func (b *TenderService) EditTenderById(ctx context.Context, input EditTenderById
 
 	return tender, nil
 }
+
+func (b *TenderService) UpdateVersionTender(ctx context.Context, input UpdateVersionTenderInput) (entity.Tender, error) {
+	tender, err := b.tenderRepo.GetTenderById(ctx, input.TenderId)
+	if err != nil {
+		if errors.Is(err, repoerrs.ErrNotFound) {
+			return entity.Tender{}, ErrTenderNotFind
+		}
+		return entity.Tender{}, err
+	}
+
+	employee, err := b.employeeRepo.GetEmployeeByUsername(ctx, input.Username)
+	if err != nil {
+		if errors.Is(err, repoerrs.ErrNotFound) {
+			return entity.Tender{}, ErrEmployeeNotFind
+		}
+		return entity.Tender{}, err
+	}
+
+	orgaEmpId, err := b.organizationResponsibleRepo.GetOrganizationIdByEmployeeId(ctx, employee.Id)
+	if err != nil {
+		if errors.Is(err, repoerrs.ErrNotFound) {
+			return entity.Tender{}, ErrOrganizationNotFind
+		}
+		return entity.Tender{}, err
+	}
+
+	if tender.OrganizationId != orgaEmpId {
+		return entity.Tender{}, ErrNotEnoughRights
+	}
+
+	tenderVer, err := b.tenderRepo.GetTenderByTagAndVersion(ctx, tender.Tag, tender.Version)
+
+	if err != nil {
+		if errors.Is(err, repoerrs.ErrNotFound) {
+			return entity.Tender{}, ErrTenderNotFind
+		}
+		return entity.Tender{}, err
+	}
+
+	tenderVer.Version = tender.Version * 100 + 5
+
+	bidVerId, err := b.tenderRepo.CreateTender(ctx, tenderVer)
+
+	if err != nil {
+		return entity.Tender{}, err
+	}
+
+	tenderVer.Id = bidVerId 
+
+	return tenderVer, nil
+}

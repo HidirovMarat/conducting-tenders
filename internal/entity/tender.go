@@ -17,5 +17,5 @@ type Tender struct {
 	OrganizationId uuid.UUID               `db:"organization_id"`
 	Version        int                     `db:"version"`
 	CreatedAt      time.Time               `db:"created_at"`
-	Tag            uuid.UUID               `db:"tag"`
+	Tag            uuid.UUID               `db:"tag" json:"omitempty"`
 }

@@ -270,3 +270,57 @@ func (b *BidService) EditBidById(ctx context.Context, input EditBidByIdInput) (e
 
 	return bid, nil
 }
+
+func (b *BidService) UpdateVersionBid(ctx context.Context, input UpdateVersionBidInput) (entity.Bid, error) {
+	bid, err := b.bidRepo.GetBidById(ctx, input.BidId)
+
+	if err != nil {
+		if errors.Is(err, repoerrs.ErrNotFound) {
+			return entity.Bid{}, ErrBidNotFind
+		}
+		return entity.Bid{}, err
+	}
+
+	employee, err := b.employeeRepo.GetEmployeeByUsername(ctx, input.Username)
+
+	if err != nil {
+		if errors.Is(err, repoerrs.ErrNotFound) {
+			return entity.Bid{}, ErrEmployeeNotFind
+		}
+		return entity.Bid{}, err
+	}
+
+	orgaEmpId, err := b.organizationResponsibleRepo.GetOrganizationIdByEmployeeId(ctx, employee.Id)
+
+	if err != nil {
+		if errors.Is(err, repoerrs.ErrNotFound) {
+			return entity.Bid{}, ErrOrganizationNotFind
+		}
+		return entity.Bid{}, err
+	}
+
+	if bid.AuthorId != employee.Id || orgaEmpId != bid.AuthorId {
+		return entity.Bid{}, ErrNotEnoughRights
+	}
+
+	bidVer, err := b.bidRepo.GetBidByTagAndVersion(ctx, bid.Tag, bid.Version)
+
+	if err != nil {
+		if errors.Is(err, repoerrs.ErrNotFound) {
+			return entity.Bid{}, ErrBidNotFind
+		}
+		return entity.Bid{}, err
+	}
+
+	bidVer.Version = bid.Version * 100 + 5
+
+	bidVerId, err := b.bidRepo.CreateBid(ctx, bidVer)
+
+	if err != nil {
+		return entity.Bid{}, err
+	}
+
+	bidVer.Id = bidVerId 
+
+	return bidVer, nil
+}

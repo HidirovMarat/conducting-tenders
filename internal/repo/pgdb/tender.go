@@ -156,3 +156,32 @@ func (r *TenderRepo) GetTenders(ctx context.Context, serviceType []serviceType.S
 
 	return tenders, nil
 }
+
+func (r *TenderRepo) GetTenderByTagAndVersion(ctx context.Context, tag uuid.UUID, version int) (entity.Tender, error) {
+	sql, args, _ := r.Builder.
+		Select("id", "name", "description", "type", "status", "organization_id", "version", "created_at", "tag").
+		From("tenders").
+		Where("tag = ? and version = ?", tag, version).
+		ToSql()
+
+	var tender entity.Tender
+	err := r.Pool.QueryRow(ctx, sql, args...).Scan(
+		&tender.Id,
+		&tender.Name,
+		&tender.Description,
+		&tender.ServiceType,
+		&tender.Status,
+		&tender.OrganizationId,
+		&tender.Version,
+		&tender.CreatedAt,
+		&tender.Tag,
+	)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return entity.Tender{}, repoerrs.ErrNotFound
+		}
+		return entity.Tender{}, fmt.Errorf("TenderRepo.GetTenderByTagAndVersion - r.Pool.QueryRow: %v", err)
+	}
+
+	return tender, nil
+}

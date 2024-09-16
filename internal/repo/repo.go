@@ -19,6 +19,7 @@ type Bid interface {
 	GetBidsByAuthorId(ctx context.Context, authorId uuid.UUID, limit int, offset int) ([]entity.Bid, error)
 	GetBidsByTenderIdAndAuthorId(ctx context.Context, tenderId uuid.UUID, authorId uuid.UUID, limit int, offset int) ([]entity.Bid, error)
 	GetBidById(ctx context.Context, bidId uuid.UUID) (entity.Bid, error)
+	GetBidByTagAndVersion(ctx context.Context, tag uuid.UUID, version int) (entity.Bid, error)
 }
 
 type Tender interface {
@@ -26,6 +27,7 @@ type Tender interface {
 	GetTenders(ctx context.Context, serviceType []serviceType.ServiceType, limit int, offset int) ([]entity.Tender, error)
 	GetTendersByOrganizationId(ctx context.Context, organizationId uuid.UUID, limit int, offset int) ([]entity.Tender, error)
 	GetTenderById(ctx context.Context, tenderId uuid.UUID) (entity.Tender, error)
+	GetTenderByTagAndVersion(ctx context.Context, tag uuid.UUID, version int) (entity.Tender, error)
 }
 
 type Employee interface {
