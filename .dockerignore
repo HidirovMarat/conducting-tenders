@@ -4,3 +4,4 @@
 out/
 Dockerfile
 задание
+.gitignore
