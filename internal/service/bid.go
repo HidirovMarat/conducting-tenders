@@ -8,6 +8,7 @@ import (
 	"conducting-tenders/internal/repo/repoerrs"
 	"context"
 	"errors"
+	"log"
 	"time"
 
 	"github.com/google/uuid"
@@ -23,10 +24,10 @@ type BidService struct {
 
 func NewBidService(bidRepo repo.Bid, employeeRepo repo.Employee, tenderRepo repo.Tender, organizationRepo repo.Organization, organizationResponsibleRepo repo.OrganizationResponsible) *BidService {
 	return &BidService{
-		bidRepo: bidRepo,
-		employeeRepo: employeeRepo,
-		tenderRepo: tenderRepo,
-		organizationRepo: organizationRepo,
+		bidRepo:                     bidRepo,
+		employeeRepo:                employeeRepo,
+		tenderRepo:                  tenderRepo,
+		organizationRepo:            organizationRepo,
 		organizationResponsibleRepo: organizationResponsibleRepo,
 	}
 }
@@ -53,18 +54,22 @@ func (b *BidService) CreateBid(ctx context.Context, input CreateBidInput) (entit
 	bid.AuthorType = input.AuthorType
 	if input.AuthorType == authorType.AuthorUser {
 		_, err := b.employeeRepo.GetEmployeeById(ctx, input.AuthorId)
-		if errors.Is(err, repoerrs.ErrNotFound) {
-			return entity.Bid{}, ErrEmployeeNotFind
+		if err != nil {
+			if errors.Is(err, repoerrs.ErrNotFound) {
+				return entity.Bid{}, ErrEmployeeNotFind
+			}
+			return entity.Bid{}, err
 		}
-		return entity.Bid{}, err
 	}
 
 	if input.AuthorType == authorType.AuthorOrganization {
 		_, err := b.organizationRepo.GetOrganizationById(ctx, input.AuthorId)
-		if errors.Is(err, repoerrs.ErrNotFound) {
-			return entity.Bid{}, ErrOrganizationNotFind
+		if err != nil {
+			if errors.Is(err, repoerrs.ErrNotFound) {
+				return entity.Bid{}, ErrOrganizationNotFind
+			}
+			return entity.Bid{}, err
 		}
-		return entity.Bid{}, err
 	}
 
 	bid.AuthorId = input.AuthorId
@@ -72,14 +77,12 @@ func (b *BidService) CreateBid(ctx context.Context, input CreateBidInput) (entit
 	bid.CreatedAt = time.Now()
 	bid.Tag = uuid.New()
 
-	bidId, err := b.bidRepo.CreateBid(ctx, bid)
+	_, err = b.bidRepo.CreateBid(ctx, bid)
 
 	if err != nil {
 		return entity.Bid{}, err
 	}
-
-	bid.Id = bidId
-
+	log.Println(";lsjkaf")
 	return bid, nil
 }
 
@@ -114,22 +117,19 @@ func (b *BidService) GetBidsByTenderId(ctx context.Context, input GetBidsByTende
 	organizationEmpId, err := b.organizationResponsibleRepo.GetOrganizationIdByEmployeeId(ctx, employee.Id)
 
 	if err != nil {
+		if errors.Is(err, repoerrs.ErrNotFound) {
+			return []entity.Bid{}, ErrEmployeeNotFind
+		}
 		return []entity.Bid{}, err
 	}
 
-	bidsEmp, err := b.bidRepo.GetBidsByTenderIdAndAuthorId(ctx, input.TenderId, employee.Id, input.Limit, input.Offset)
-
+	bids, err := b.bidRepo.GetBidsByTenderIdAndUserIdAndOrganizationId(ctx, input.TenderId, organizationEmpId , employee.Id, input.Limit, input.Offset)
 	if err != nil {
-		return []entity.Bid{}, err
+		if errors.Is(err, repoerrs.ErrNotFound) {
+			return []entity.Bid{}, ErrEmployeeNotFind
+		}
+		return []entity.Bid{}, err	
 	}
-
-	bidsOrg, err := b.bidRepo.GetBidsByTenderIdAndAuthorId(ctx, input.TenderId, organizationEmpId, input.Limit, input.Offset)
-
-	if err != nil {
-		return []entity.Bid{}, err
-	}
-
-	bids := append(bidsEmp, bidsOrg...)
 
 	return bids, nil
 }
@@ -202,8 +202,13 @@ func (b *BidService) UpdateBidStatusById(ctx context.Context, input UpdateBidSta
 	}
 
 	bid.Status = input.Status
-	bid.Version += 1
+	maxVersion, err := b.bidRepo.GetBidVersionMaxByTag(ctx, bid.Tag)
+	if err != nil {
+		return entity.Bid{}, err
+	}
 
+	bid.Version = maxVersion + 1
+	bid.Id = uuid.New()
 	bidId, err := b.bidRepo.CreateBid(ctx, bid)
 
 	if err != nil {
@@ -259,7 +264,13 @@ func (b *BidService) EditBidById(ctx context.Context, input EditBidByIdInput) (e
 		bid.Description = input.Description
 	}
 
-	bid.Version += 1
+	maxVersion, err := b.bidRepo.GetBidVersionMaxByTag(ctx, bid.Tag)
+	if err != nil {
+		return entity.Bid{}, err
+	}
+
+	bid.Version = maxVersion + 1
+	bid.Id = uuid.New()
 	bidId, err := b.bidRepo.CreateBid(ctx, bid)
 
 	if err != nil {
@@ -303,7 +314,7 @@ func (b *BidService) UpdateVersionBid(ctx context.Context, input UpdateVersionBi
 		return entity.Bid{}, ErrNotEnoughRights
 	}
 
-	bidVer, err := b.bidRepo.GetBidByTagAndVersion(ctx, bid.Tag, bid.Version)
+	bidVer, err := b.bidRepo.GetBidByTagAndVersion(ctx, bid.Tag, input.Version)
 
 	if err != nil {
 		if errors.Is(err, repoerrs.ErrNotFound) {
@@ -312,7 +323,12 @@ func (b *BidService) UpdateVersionBid(ctx context.Context, input UpdateVersionBi
 		return entity.Bid{}, err
 	}
 
-	bidVer.Version = bid.Version * 100 + 5
+	maxVersion, err := b.bidRepo.GetBidVersionMaxByTag(ctx, bid.Tag)
+	if err != nil {
+		return entity.Bid{}, err
+	}
+	bidVer.Version = maxVersion + 1
+	bidVer.Id = uuid.New()
 
 	bidVerId, err := b.bidRepo.CreateBid(ctx, bidVer)
 
@@ -320,7 +336,7 @@ func (b *BidService) UpdateVersionBid(ctx context.Context, input UpdateVersionBi
 		return entity.Bid{}, err
 	}
 
-	bidVer.Id = bidVerId 
+	bidVer.Id = bidVerId
 
 	return bidVer, nil
 }

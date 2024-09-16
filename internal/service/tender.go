@@ -160,10 +160,13 @@ func (b *TenderService) UpdateTenderStatusById(ctx context.Context, input Update
 	if tender.OrganizationId != orgaEmpId {
 		return entity.Tender{}, ErrNotEnoughRights
 	}
-
+	maxVersion, err := b.tenderRepo.GetTenderVersionMaxByTag(ctx, tender.Tag)
+	if err != nil {
+		return entity.Tender{}, err
+	}
 	tender.Status = input.Status
-	tender.Version += 1
-
+	tender.Version = maxVersion + 1
+	tender.Id = uuid.New()
 	tenderId, err := b.tenderRepo.CreateTender(ctx, tender)
 
 	if err != nil {
@@ -219,8 +222,12 @@ func (b *TenderService) EditTenderById(ctx context.Context, input EditTenderById
 	if input.ServiceType != "" {
 		tender.ServiceType = input.ServiceType
 	}
-
-	tender.Version += 1
+	maxVersion, err := b.tenderRepo.GetTenderVersionMaxByTag(ctx, tender.Tag)
+	if err != nil {
+		return entity.Tender{}, err
+	}
+	tender.Version = maxVersion + 1
+	tender.Id = uuid.New()
 	tenderId, err := b.tenderRepo.CreateTender(ctx, tender)
 	if err != nil {
 		return entity.Tender{}, err
@@ -260,7 +267,7 @@ func (b *TenderService) UpdateVersionTender(ctx context.Context, input UpdateVer
 		return entity.Tender{}, ErrNotEnoughRights
 	}
 
-	tenderVer, err := b.tenderRepo.GetTenderByTagAndVersion(ctx, tender.Tag, tender.Version)
+	tenderVer, err := b.tenderRepo.GetTenderByTagAndVersion(ctx, tender.Tag, input.Version )
 
 	if err != nil {
 		if errors.Is(err, repoerrs.ErrNotFound) {
@@ -268,16 +275,19 @@ func (b *TenderService) UpdateVersionTender(ctx context.Context, input UpdateVer
 		}
 		return entity.Tender{}, err
 	}
-
-	tenderVer.Version = tender.Version * 100 + 5
-
-	bidVerId, err := b.tenderRepo.CreateTender(ctx, tenderVer)
+	maxVersion, err := b.tenderRepo.GetTenderVersionMaxByTag(ctx, tender.Tag)
+	if err != nil {
+		return entity.Tender{}, err
+	}
+	tenderVer.Version = maxVersion + 1 
+	tenderVer.Id = uuid.New()
+	tenderVerId, err := b.tenderRepo.CreateTender(ctx, tenderVer)
 
 	if err != nil {
 		return entity.Tender{}, err
 	}
 
-	tenderVer.Id = bidVerId 
+	tenderVer.Id = tenderVerId 
 
 	return tenderVer, nil
 }

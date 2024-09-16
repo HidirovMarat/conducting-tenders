@@ -73,15 +73,10 @@ func (r *TenderRepo) GetTendersByOrganizationId(ctx context.Context, organizatio
 	req := r.Builder.
 		Select("id", "name", "description", "type", "status", "organization_id", "version", "created_at").
 		From("tenders").
-		Where("organization_id = ?", organizationId)
+		Where("organization_id = ?", organizationId).
+		Limit(uint64(limit)).
+		Offset(uint64(offset))
 
-	if limit > 0 {
-		req.Limit(uint64(limit))
-	}
-
-	if offset > 0 {
-		req.Offset(uint64(offset))
-	}
 	sql, args, _ := req.ToSql()
 
 	rows, err := r.Pool.Query(ctx, sql, args...)
@@ -117,15 +112,10 @@ func (r *TenderRepo) GetTenders(ctx context.Context, serviceType []serviceType.S
 	req := r.Builder.
 		Select("id", "name", "description", "type", "status", "organization_id", "version", "created_at").
 		From("tenders").
-		Where(sq.Eq{"type": serviceType})
+		Where(sq.Eq{"type": serviceType}).
+		Limit(uint64(limit)).
+		Offset(uint64(offset))
 
-	if limit > 0 {
-		req.Limit(uint64(limit))
-	}
-
-	if offset > 0 {
-		req.Offset(uint64(offset))
-	}
 	sql, args, _ := req.ToSql()
 
 	rows, err := r.Pool.Query(ctx, sql, args...)
@@ -184,4 +174,25 @@ func (r *TenderRepo) GetTenderByTagAndVersion(ctx context.Context, tag uuid.UUID
 	}
 
 	return tender, nil
+}
+
+func (r *TenderRepo) GetTenderVersionMaxByTag(ctx context.Context, tag uuid.UUID) (int, error) {
+	sql, args, _ := r.Builder.
+		Select("MAX(version) as max").
+		From("tenders").
+		Where("tag = ?", tag).
+		ToSql()
+
+	var max int
+	err := r.Pool.QueryRow(ctx, sql, args...).Scan(
+		&max,
+	)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return 0, repoerrs.ErrNotFound
+		}
+		return 0, fmt.Errorf("TenderRepo.GetTenderVersionMaxByTag - r.Pool.QueryRow: %v", err)
+	}
+
+	return max, nil
 }

@@ -47,7 +47,7 @@ func (r *EmployeeRepo) GetEmployeeByUsername(ctx context.Context, username strin
 
 func (r *EmployeeRepo) GetEmployeeById(ctx context.Context, employeeId uuid.UUID) (entity.Employee, error) {
 	sql, args, _ := r.Builder.
-		Select("id", "username", "first_name", "last_name", "created_at", "update_at").
+		Select("id", "username", "first_name", "last_name").
 		From("employee").
 		Where("id = ?", employeeId).
 		ToSql()
@@ -58,8 +58,6 @@ func (r *EmployeeRepo) GetEmployeeById(ctx context.Context, employeeId uuid.UUID
 		&employee.Username,
 		&employee.First_name,
 		&employee.Last_name,
-		&employee.Created_at,
-		&employee.Updated_at,
 	)
 
 	if err != nil {

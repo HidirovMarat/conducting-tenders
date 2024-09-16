@@ -98,8 +98,8 @@ type GetTenderStatusByIdInput struct {
 
 type UpdateTenderStatusByIdInput struct {
 	TenderId uuid.UUID           `param:"tenderId" validate:"required,uuid"`
-	Username string              `query:"username"` //validate:"required,min=1,max=100"
-	Status   statusTender.Status `query:"status"`
+	Username string              `query:"username" validate:"required,min=1,max=100"`
+	Status   statusTender.Status `query:"status" validate:"required,min=1,max=100"`
 }
 
 type EditTenderByIdInput struct {

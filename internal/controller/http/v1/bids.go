@@ -19,13 +19,13 @@ func newBidsRoutes(g *echo.Group, bidsService service.Bid) *bidsRoutes {
 
 	g.POST("/new", r.createBid)
 	g.GET("/my", r.getBidsByUsername)
-	g.GET("/{tenderId}/list", r.getBidsOfTenderById)
-	g.GET("/{bidId}/status", r.getBidStatusById)
-	g.PUT("/{bidId}/edit", r.updateBidStatusById)
-	g.PATCH("/{bidId}/edit", r.editBidByIdAndUsername)
+	g.GET("/:tenderId/list", r.getBidsOfTenderById)
+	g.GET("/:bidId/status", r.getBidStatusById)
+	g.PUT("/:bidId/status", r.updateBidStatusById)
+	g.PATCH("/:bidId/edit", r.editBidByIdAndUsername)
 	//g.PUT("/bids/{bidId}/submit_decision", editSubmitDecisionById)
 	//g.PUT("/bids/{bidId}/feedback", editFeelbackById)
-	g.PUT("/bids/:bidId/rollback/:version", r.updateVersionBid)
+	g.PUT(":bidId/rollback/:version", r.updateVersionBid)
 	//g.GET("/bids/{tenderId}/reviews", getReviewsByTender)
 	return r
 }

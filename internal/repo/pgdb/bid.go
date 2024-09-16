@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 
 	"github.com/jackc/pgx/v5"
 
@@ -43,15 +44,10 @@ func (r *BidRepo) GetBidsByAuthorId(ctx context.Context, authorId uuid.UUID, lim
 	req := r.Builder.
 		Select("id", "name", "description", "status", "tender_id", "author_t", "author_id", "version", "created_at").
 		From("bids").
-		Where("author_id = ?", authorId)
+		Where("author_id = ?", authorId).
+		Limit(uint64(limit)).
+		Offset(uint64(offset))
 
-	if limit > 0 {
-		req.Limit(uint64(limit))
-	}
-
-	if offset > 0 {
-		req.Offset(uint64(offset))
-	}
 	sql, args, _ := req.ToSql()
 
 	rows, err := r.Pool.Query(ctx, sql, args...)
@@ -84,20 +80,14 @@ func (r *BidRepo) GetBidsByAuthorId(ctx context.Context, authorId uuid.UUID, lim
 }
 
 func (r *BidRepo) GetBidsByTenderIdAndAuthorId(ctx context.Context, tenderId uuid.UUID, authorId uuid.UUID, limit int, offset int) ([]entity.Bid, error) {
-	req := r.Builder.
+	sql, args, _ := r.Builder.
 		Select("id", "name", "description", "status", "tender_id", "author_t", "author_id", "version", "created_at").
 		From("bids").
-		Where("author_id = ? and tender_id = ?", authorId, tenderId)
-
-	if limit > 0 {
-		req.Limit(uint64(limit))
-	}
-
-	if offset > 0 {
-		req.Offset(uint64(offset))
-	}
-	sql, args, _ := req.ToSql()
-
+		Where("author_id = ? and tender_id = ?", authorId, tenderId).
+		Limit(uint64(limit)).
+		Offset(uint64(offset)).
+		ToSql()
+	
 	rows, err := r.Pool.Query(ctx, sql, args...)
 	if err != nil {
 		return nil, fmt.Errorf("BidRepo.GetBidsByTenderIdAndAuthorId - r.Pool.Query: %v", err)
@@ -123,7 +113,48 @@ func (r *BidRepo) GetBidsByTenderIdAndAuthorId(ctx context.Context, tenderId uui
 		}
 		bids = append(bids, bid)
 	}
+	log.Printf("len = %v", len(bids))
+	return bids, nil
+}
 
+func (r *BidRepo) GetBidsByTenderIdAndUserIdAndOrganizationId(ctx context.Context, tenderId uuid.UUID, authorId1 uuid.UUID, author_id2 uuid.UUID, limit int, offset int) ([]entity.Bid, error) {
+	req := r.Builder.
+		Select("id", "name", "description", "status", "tender_id", "author_t", "author_id", "version", "created_at").
+		From("bids").
+		Where("(author_id = ? or author_id = ?) and tender_id = ?", authorId1, author_id2, tenderId).
+		Limit(uint64(limit)).
+		Offset(uint64(offset))
+	
+	sql, args, _ := req.ToSql()
+
+	log.Printf("SQL Query: %s", sql)  // Вывод SQL-запроса
+
+	rows, err := r.Pool.Query(ctx, sql, args...)
+	if err != nil {
+		return nil, fmt.Errorf("BidRepo.GetBidsByTenderIdAndUserIdAndOrganizationId - r.Pool.Query: %v", err)
+	}
+	defer rows.Close()
+
+	var bids []entity.Bid
+	for rows.Next() {
+		var bid entity.Bid
+		err := rows.Scan(
+			&bid.Id,
+			&bid.Name,
+			&bid.Description,
+			&bid.Status,
+			&bid.TenderId,
+			&bid.AuthorType,
+			&bid.AuthorId,
+			&bid.Version,
+			&bid.CreatedAt,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("BidRepo.GetBidsByTenderIdAndUserIdAndOrganizationId - rows.Scan: %v", err)
+		}
+		bids = append(bids, bid)
+	}
+	log.Printf("len = %v", len(bids))
 	return bids, nil
 }
 
@@ -185,4 +216,26 @@ func (r *BidRepo) GetBidByTagAndVersion(ctx context.Context, tag uuid.UUID, vers
 	}
 
 	return bid, nil
+}
+
+func (r *BidRepo) GetBidVersionMaxByTag(ctx context.Context, tag uuid.UUID) (int, error) {
+	sql, args, _ := r.Builder.
+		Select("MAX(version) as max").
+		From("bids").
+		Where("tag = ?", tag).
+		ToSql()
+
+	var max int
+	err := r.Pool.QueryRow(ctx, sql, args...).Scan(
+		&max,
+	)
+
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return 0, repoerrs.ErrNotFound
+		}
+		return 0, fmt.Errorf("BidRepo.GetBidVersionMaxByTag - r.Pool.QueryRow: %v", err)
+	}
+
+	return max, nil
 }

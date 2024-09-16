@@ -8,7 +8,9 @@ import (
 	"strconv"
 
 	serviceType "conducting-tenders/internal/entity/service-type"
+	"conducting-tenders/internal/entity/statusTender"
 
+	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 )
 
@@ -26,12 +28,16 @@ func newTendersRoutes(g *echo.Group, tendersService service.Tender) *tendersRout
 	g.POST("/new", r.createTender)
 	g.GET("/my", r.getTendersByUsername)
 	g.GET("", r.getTenders)
-	g.GET("/:tenderId/status", r.getTenderStatusById)
-	g.PUT("/:tenderId/status", r.updateTenderStatusById)
-	g.PATCH("/:tenderId/edit", r.editTenderByIdAndUsername)
+	tenderId := g.Group("/:tenderId")
+	{
+		tenderId.GET("/status", r.getTenderStatusById)
+		tenderId.PUT("/status", r.updateTenderStatusById)
+		tenderId.PATCH("/edit", r.editTenderByIdAndUsername)
+	}
+
 	//g.PUT("/tenders/{tenderId}/submit_decision", editSubmitDecisionById)
 	//g.PUT("/tenders/{tenderId}/feedback", editFeelbackById)
-	g.PUT("/tenders/:tenderId/rollback/:version", r.updateVersionTender)
+	g.PUT("/:tenderId/rollback/:version", r.updateVersionTender)
 	//g.GET("/tenders/{tenderId}/reviews", getReviewsByTender)
 	return r
 }
@@ -172,6 +178,7 @@ func (r *tendersRoutes) getTenders(c echo.Context) error {
 func (r *tendersRoutes) getTenderStatusById(c echo.Context) error {
 	var input service.GetTenderStatusByIdInput
 	err := c.Bind(&input)
+	log.Println(input)
 
 	if err != nil {
 		c.JSON(400, map[string]interface{}{"reason": err.Error()})
@@ -207,12 +214,20 @@ func (r *tendersRoutes) getTenderStatusById(c echo.Context) error {
 
 func (r *tendersRoutes) updateTenderStatusById(c echo.Context) error {
 	var input service.UpdateTenderStatusByIdInput
-	err := c.Bind(&input)
+	//err := c.Bind(&input)
+	username := c.QueryParam("username")
+	status := c.QueryParam("status")
+	tenderId := c.Param("tenderId")
+	var err error
+
+	input.Status = statusTender.Status(status)
+	input.TenderId, err = uuid.Parse(tenderId)
 
 	if err != nil {
-		c.JSON(400, map[string]interface{}{"reason": err.Error()})
-		return err
+		return c.JSON(400, map[string]interface{}{"reason": err.Error()})
 	}
+
+	input.Username = username
 
 	if err = c.Validate(input); err != nil {
 		c.JSON(400, map[string]interface{}{"reason": err.Error()})
@@ -242,16 +257,15 @@ func (r *tendersRoutes) updateTenderStatusById(c echo.Context) error {
 
 func (r *tendersRoutes) editTenderByIdAndUsername(c echo.Context) error {
 	var input service.EditTenderByIdInput
+	//input := new(service.EditTenderByIdInput)
 	err := c.Bind(&input)
-
 	if err != nil {
-		c.JSON(400, map[string]interface{}{"reason": err.Error()})
-		return err
+		return c.JSON(400, map[string]interface{}{"reason": err.Error()})
 	}
+	input.Username = c.QueryParam("username")
 
 	if err = c.Validate(input); err != nil {
-		c.JSON(400, map[string]interface{}{"reason": err.Error()})
-		return err
+		return c.JSON(400, map[string]interface{}{"reason": err.Error()})
 	}
 
 	tenders, err := r.tendersService.EditTenderById(c.Request().Context(), input)
@@ -283,7 +297,7 @@ func (r *tendersRoutes) updateVersionTender(c echo.Context) error {
 		c.JSON(400, map[string]interface{}{"reason": err.Error()})
 		return err
 	}
-
+	input.Username = c.QueryParam("username")
 	if err = c.Validate(input); err != nil {
 		c.JSON(400, map[string]interface{}{"reason": err.Error()})
 		return err
