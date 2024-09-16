@@ -22,7 +22,7 @@ func NewEmployeeRepo(pg *postgres.Postgres) *EmployeeRepo {
 
 func (r *EmployeeRepo) GetEmployeeByUsername(ctx context.Context, username string) (entity.Employee, error) {
 	sql, args, _ := r.Builder.
-		Select("id", "username", "first_name", "last_name", "created_at", "update_at").
+		Select("id", "username", "first_name", "last_name").
 		From("employee").
 		Where("username = ?", username).
 		ToSql()
@@ -33,8 +33,6 @@ func (r *EmployeeRepo) GetEmployeeByUsername(ctx context.Context, username strin
 		&employee.Username,
 		&employee.First_name,
 		&employee.Last_name,
-		&employee.Created_at,
-		&employee.Updated_at,
 	)
 
 	if err != nil {

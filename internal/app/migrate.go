@@ -23,7 +23,7 @@ func init() {
 		log.Fatalf("migrate: environment variable not declared: POSTGRES_CONN")
 	}
 
-	//databaseURL += "?sslmode=disable"
+	databaseURL += "?sslmode=disable"
 
 	var (
 		attempts = defaultAttempts

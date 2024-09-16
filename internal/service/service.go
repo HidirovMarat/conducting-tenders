@@ -19,40 +19,40 @@ type Ping interface {
 type CreateBidInput struct {
 	Name        string                `json:"name" validate:"required,min=1,max=100"`
 	Description string                `json:"description" validate:"required,min=1,max=500"`
-	TenderId    uuid.UUID             `json:"tenderId" validate:"required, uuid"`
-	AuthorType  authorType.AuthorType `json:"authorType" validate:"required, oneof=Organization User"`
-	AuthorId    uuid.UUID             `json:"authorId" validate:"required, uuid"`
+	TenderId    uuid.UUID             `json:"tenderId" validate:"required,uuid"`
+	AuthorType  authorType.AuthorType `json:"authorType" validate:"required,oneof=Organization User"`
+	AuthorId    uuid.UUID             `json:"authorId" validate:"required,uuid"`
 }
 
 type GetBidsByUsernameInput struct {
 	Limit    int    `query:"limit"`
 	Offset   int    `query:"offset"`
-	Username string `query:"username" validate:"required, min=1,max=100"`
+	Username string `query:"username" validate:"required,min=1,max=100"`
 }
 
 type GetBidsByTenderIdInput struct {
 	Limit    int       `query:"limit"`
 	Offset   int       `query:"offset"`
-	Username string    `query:"username" validate:"required, min=1,max=100"`
-	TenderId uuid.UUID `param:"tenderId" validate:"required, uuid"`
+	Username string    `query:"username" validate:"required,min=1,max=100"`
+	TenderId uuid.UUID `param:"tenderId" validate:"required,uuid"`
 }
 
 type GetBidStatusByIdInput struct {
-	BidId    uuid.UUID `param:"bidId" validate:"required, uuid"`
-	Username string    `query:"username" validate:"required, min=1, max=100"`
+	BidId    uuid.UUID `param:"bidId" validate:"required,uuid"`
+	Username string    `query:"username" validate:"required,min=1,max=100"`
 }
 
 type UpdateBidStatusByIdInput struct {
-	BidId    uuid.UUID        `param:"bidId" validate:"required, uuid"`
-	Username string           `query:"username" validate:"required, min=1,max=100"`
-	Status   statusBid.Status `query:"status" validate:"required, oneof=Created Published Canceled"`
+	BidId    uuid.UUID        `param:"bidId" validate:"required,uuid"`
+	Username string           `query:"username" validate:"required,min=1,max=100"`
+	Status   statusBid.Status `query:"status" validate:"required,oneof=Created Published Canceled"`
 }
 
 type EditBidByIdInput struct {
-	BidId       uuid.UUID `param:"bidId" validate:"required, uuid"`
-	Username    string    `query:"username" validate:"required, min=1, max=100"`
-	Name        string    `json:"name" validate:"omitempty, min=1, max=100"`
-	Description string    `json:"description" validate:"omitempty, min=1, max=500"`
+	BidId       uuid.UUID `param:"bidId" validate:"required,uuid"`
+	Username    string    `query:"username" validate:"required,min=1,max=100"`
+	Name        string    `json:"name" validate:"omitempty,min=1,max=100"`
+	Description string    `json:"description" validate:"omitempty,min=1,max=500"`
 }
 
 type Bid interface {
@@ -75,32 +75,32 @@ type CreateTenderInput struct {
 type GetTendersInput struct {
 	Limit       int                       `query:"limit"`
 	Offset      int                       `query:"offset"`
-	ServiceType []serviceType.ServiceType `query:"serviceType" validate:"dive,required,oneof=Construction Delivery Manufacture"`
+	ServiceType []serviceType.ServiceType `query:"service_type"`
 }
 
 type GetTendersByUsernameInput struct {
 	Limit    int    `query:"limit"`
 	Offset   int    `query:"offset"`
-	Username string `query:"username" validate:"required, min=1, max=100"`
+	Username string `query:"username" validate:"required,min=1,max=100"`
 }
 
 type GetTenderStatusByIdInput struct {
-	TenderId uuid.UUID `param:"tenderId" validate:"required, uuid"`
-	Username string    `query:"username" validate:"required, min=1, max=100"`
+	TenderId uuid.UUID `param:"tenderId" validate:"required,uuid"`
+	Username string    `query:"username" validate:"required,min=1,max=100"`
 }
 
 type UpdateTenderStatusByIdInput struct {
-	TenderId uuid.UUID           `param:"tenderId" validate:"required, uuid"`
-	Username string              `query:"username" validate:"required, min=1, max=100"`
-	Status   statusTender.Status `query:"status" validate:"required, min=1, max=100"`
+	TenderId uuid.UUID           `param:"tenderId" validate:"required,uuid"`
+	Username string              `query:"username"` //validate:"required,min=1,max=100"
+	Status   statusTender.Status `query:"status"`
 }
 
 type EditTenderByIdInput struct {
-	TenderId    uuid.UUID               `param:"tenderId" validate:"required, uuid"`
-	Username    string                  `query:"username" validate:"required, min=1, max=100"`
-	Name        string                  `json:"name" validate:"omitempty, min=1, max=100"`
-	Description string                  `json:"description" validate:"omitempty, min=1, max=500"`
-	ServiceType serviceType.ServiceType `json:"serviceType" validate:"omitempty, oneof=Construction Delivery Manufacture"`
+	TenderId    uuid.UUID               `param:"tenderId" validate:"required,uuid"`
+	Username    string                  `query:"username" validate:"required,min=1,max=100"`
+	Name        string                  `json:"name" validate:"omitempty,min=1,max=100"`
+	Description string                  `json:"description" validate:"omitempty,min=1,max=500"`
+	ServiceType serviceType.ServiceType `json:"serviceType" validate:"omitempty,oneof=Construction Delivery Manufacture"`
 }
 
 type Tender interface {

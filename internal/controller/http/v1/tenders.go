@@ -5,9 +5,14 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"strconv"
+
+	serviceType "conducting-tenders/internal/entity/service-type"
 
 	"github.com/labstack/echo/v4"
 )
+
+//validate:"dive,required,oneof=Construction Delivery Manufacture"` //validate:"dive,required,oneof=Construction Delivery Manufacture"
 
 type tendersRoutes struct {
 	tendersService service.Tender
@@ -21,9 +26,9 @@ func newTendersRoutes(g *echo.Group, tendersService service.Tender) *tendersRout
 	g.POST("/new", r.createTender)
 	g.GET("/my", r.getTendersByUsername)
 	g.GET("", r.getTenders)
-	g.GET("/{tenderId}/status", r.getTenderStatusById)
-	g.PUT("/{tenderId}/edit", r.updateTenderStatusById)
-	g.PATCH("/{tenderId}/edit", r.editTenderByIdAndUsername)
+	g.GET("/:tenderId/status", r.getTenderStatusById)
+	g.PUT("/:tenderId/status", r.updateTenderStatusById)
+	g.PATCH("/:tenderId/edit", r.editTenderByIdAndUsername)
 	//g.PUT("/tenders/{tenderId}/submit_decision", editSubmitDecisionById)
 	//g.PUT("/tenders/{tenderId}/feedback", editFeelbackById)
 	//g.PUT("/tenders/{tenderId}/rollback/{version}", editRollbackVersionById)
@@ -103,17 +108,44 @@ func (r *tendersRoutes) getTendersByUsername(c echo.Context) error {
 }
 
 func (r *tendersRoutes) getTenders(c echo.Context) error {
-	var input service.GetTendersInput
-	err := c.Bind(&input)
 
-	if err != nil {
-		c.JSON(400, map[string]interface{}{"reason": err.Error()})
-		return err
+	var input service.GetTendersInput
+
+	// Извлечение limit и offset
+	limit := c.QueryParam("limit")
+	offset := c.QueryParam("offset")
+
+	// Преобразуем limit и offset из строки в число
+	if limit != "" {
+		if l, err := strconv.Atoi(limit); err == nil {
+			input.Limit = l
+		} else {
+			return c.JSON(400, map[string]interface{}{"reason": "Invalid limit"})
+		}
+	}
+	if offset != "" {
+		if o, err := strconv.Atoi(offset); err == nil {
+			input.Offset = o
+		} else {
+			return c.JSON(400, map[string]interface{}{"reason": "Invalid offset"})
+		}
 	}
 
-	if err = c.Validate(input); err != nil {
-		c.JSON(400, map[string]interface{}{"reason": err.Error()})
-		return err
+	// Извлечение serviceType
+	serviceTypes := c.QueryParams()["service_type"]
+	if len(serviceTypes) == 0 {
+		return c.JSON(400, map[string]interface{}{"reason": "service_type is required"})
+	}
+
+	// Преобразуем serviceTypes в нужный тип []serviceType.ServiceType
+	for _, s := range serviceTypes {
+		// Здесь можно добавить логику для преобразования строки в serviceType.ServiceType
+		switch s {
+		case "Construction", "Delivery", "Manufacture":
+			input.ServiceType = append(input.ServiceType, serviceType.ServiceType(s))
+		default:
+			return c.JSON(400, map[string]interface{}{"reason": "Invalid serviceType"})
+		}
 	}
 
 	tenders, err := r.tendersService.GetTenders(c.Request().Context(), input)
@@ -166,7 +198,8 @@ func (r *tendersRoutes) getTenderStatusById(c echo.Context) error {
 		if errors.Is(err, service.ErrNotEnoughRights) {
 			return c.JSON(403, err.Error())
 		}
-		return c.JSON(404, err.Error())
+		log.Println("Yesssssssssssssssss")
+		return c.JSON(404, map[string]interface{}{"reason": err.Error()})
 	}
 
 	return c.JSON(http.StatusOK, status)

@@ -52,8 +52,9 @@ func (r *TenderRepo) GetTenderById(ctx context.Context, tenderId uuid.UUID) (ent
 		&tender.Id,
 		&tender.Name,
 		&tender.Description,
-		&tender.Status,
 		&tender.ServiceType,
+		&tender.Status,
+		&tender.OrganizationId,
 		&tender.Version,
 		&tender.CreatedAt,
 		&tender.Tag,
@@ -114,7 +115,7 @@ func (r *TenderRepo) GetTendersByOrganizationId(ctx context.Context, organizatio
 
 func (r *TenderRepo) GetTenders(ctx context.Context, serviceType []serviceType.ServiceType, limit int, offset int) ([]entity.Tender, error) {
 	req := r.Builder.
-		Select("id", "name", "description", "type", "status", "organization_Id", "version", "created_at").
+		Select("id", "name", "description", "type", "status", "organization_id", "version", "created_at").
 		From("tenders").
 		Where(sq.Eq{"type": serviceType})
 

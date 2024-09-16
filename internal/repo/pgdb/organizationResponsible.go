@@ -22,7 +22,7 @@ func NewOrganizationResponsibleRepo(pg *postgres.Postgres) *OrganizationResponsi
 
 func (r *OrganizationResponsibleRepo) GetOrganizationIdByEmployeeId(ctx context.Context, employeeId uuid.UUID) (uuid.UUID, error) {
 	sql, args, _ := r.Builder.
-		Select("organization_id ").
+		Select("organization_id").
 		From("organization_responsible").
 		Where("user_id  = ?", employeeId).
 		ToSql()

@@ -72,11 +72,13 @@ func (b *BidService) CreateBid(ctx context.Context, input CreateBidInput) (entit
 	bid.CreatedAt = time.Now()
 	bid.Tag = uuid.New()
 
-	_, err = b.bidRepo.CreateBid(ctx, bid)
+	bidId, err := b.bidRepo.CreateBid(ctx, bid)
 
 	if err != nil {
 		return entity.Bid{}, err
 	}
+
+	bid.Id = bidId
 
 	return bid, nil
 }
@@ -131,6 +133,7 @@ func (b *BidService) GetBidsByTenderId(ctx context.Context, input GetBidsByTende
 
 	return bids, nil
 }
+
 func (b *BidService) GetBidStatusById(ctx context.Context, input GetBidStatusByIdInput) (statusBid.Status, error) {
 	bid, err := b.bidRepo.GetBidById(ctx, input.BidId)
 
@@ -159,12 +162,11 @@ func (b *BidService) GetBidStatusById(ctx context.Context, input GetBidStatusByI
 		return "", err
 	}
 
-	if bid.AuthorId != employee.Id || orgaEmpId != bid.AuthorId {
+	if bid.AuthorId != employee.Id || bid.AuthorId != orgaEmpId {
 		return "", ErrNotEnoughRights
 	}
 
 	return bid.Status, nil
-
 }
 
 func (b *BidService) UpdateBidStatusById(ctx context.Context, input UpdateBidStatusByIdInput) (entity.Bid, error) {

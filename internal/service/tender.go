@@ -7,6 +7,7 @@ import (
 	"conducting-tenders/internal/repo/repoerrs"
 	"context"
 	"errors"
+	"log"
 	"time"
 
 	"github.com/google/uuid"
@@ -45,7 +46,7 @@ func (b *TenderService) CreateTender(ctx context.Context, createTenderInput Crea
 		}
 		return entity.Tender{}, err
 	}
-
+	tender.OrganizationId = createTenderInput.OrganizationId
 	tender.Version = 1
 	tender.CreatedAt = time.Now()
 	tender.Tag = uuid.New()
@@ -111,6 +112,10 @@ func (b *TenderService) GetTenderStatusById(ctx context.Context, input GetTender
 		return "", err
 	}
 
+	if tender.Status == statusTender.StatusPublished {
+		return tender.Status, nil
+	}
+
 	orgaEmpId, err := b.organizationResponsibleRepo.GetOrganizationIdByEmployeeId(ctx, employee.Id)
 	if err != nil {
 		if errors.Is(err, repoerrs.ErrNotFound) {
@@ -118,7 +123,8 @@ func (b *TenderService) GetTenderStatusById(ctx context.Context, input GetTender
 		}
 		return "", err
 	}
-
+	log.Println("to = ", tender.ServiceType)
+	log.Println("org =  %s",orgaEmpId)
 	if tender.OrganizationId != orgaEmpId {
 		return "", ErrNotEnoughRights
 	}
