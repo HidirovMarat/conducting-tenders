@@ -20,15 +20,6 @@ func NewOrganizationRepo(pg *postgres.Postgres) *OrganizationRepo {
 	return &OrganizationRepo{pg}
 }
 
-/*
-	Id               uuid.UUID `db:"id"`
-	Name             string    `db:"name"`
-	Description      string    `db:"description"`
-	OrganizationType string    `db:"organization_type"` //TODO
-	Created_at       time.Time `db:"created_at"`
-	Updated_at       time.Time `db:"updated_at"`
-*/
-
 func (r *OrganizationRepo) GetOrganizationById(ctx context.Context, organizationId uuid.UUID) (entity.Organization, error) {
 	sql, args, _ := r.Builder.
 		Select("id", "name", "description", "type", "created_at", "updated_at").

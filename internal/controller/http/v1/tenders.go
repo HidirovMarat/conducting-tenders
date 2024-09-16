@@ -14,8 +14,6 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-//validate:"dive,required,oneof=Construction Delivery Manufacture"` //validate:"dive,required,oneof=Construction Delivery Manufacture"
-
 type tendersRoutes struct {
 	tendersService service.Tender
 }
@@ -34,11 +32,7 @@ func newTendersRoutes(g *echo.Group, tendersService service.Tender) *tendersRout
 		tenderId.PUT("/status", r.updateTenderStatusById)
 		tenderId.PATCH("/edit", r.editTenderByIdAndUsername)
 	}
-
-	//g.PUT("/tenders/{tenderId}/submit_decision", editSubmitDecisionById)
-	//g.PUT("/tenders/{tenderId}/feedback", editFeelbackById)
 	g.PUT("/:tenderId/rollback/:version", r.updateVersionTender)
-	//g.GET("/tenders/{tenderId}/reviews", getReviewsByTender)
 	return r
 }
 
@@ -205,7 +199,6 @@ func (r *tendersRoutes) getTenderStatusById(c echo.Context) error {
 		if errors.Is(err, service.ErrNotEnoughRights) {
 			return c.JSON(403, err.Error())
 		}
-		log.Println("Yesssssssssssssssss")
 		return c.JSON(404, map[string]interface{}{"reason": err.Error()})
 	}
 
@@ -214,7 +207,6 @@ func (r *tendersRoutes) getTenderStatusById(c echo.Context) error {
 
 func (r *tendersRoutes) updateTenderStatusById(c echo.Context) error {
 	var input service.UpdateTenderStatusByIdInput
-	//err := c.Bind(&input)
 	username := c.QueryParam("username")
 	status := c.QueryParam("status")
 	tenderId := c.Param("tenderId")
@@ -257,7 +249,6 @@ func (r *tendersRoutes) updateTenderStatusById(c echo.Context) error {
 
 func (r *tendersRoutes) editTenderByIdAndUsername(c echo.Context) error {
 	var input service.EditTenderByIdInput
-	//input := new(service.EditTenderByIdInput)
 	err := c.Bind(&input)
 	if err != nil {
 		return c.JSON(400, map[string]interface{}{"reason": err.Error()})

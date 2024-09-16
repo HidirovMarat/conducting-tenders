@@ -46,12 +46,6 @@ func init() {
 		log.Fatalf("Migrate: pgdb connect error: %s", err)
 	}
 
-	//err = m.Down()
-	/*
-	if err != nil {
-		log.Fatal("Migrate: down error: %s", err)
-	}
-	*/
 	err = m.Up()
 	defer func() { _, _ = m.Close() }()
 	if err != nil && !errors.Is(err, migrate.ErrNoChange) {
