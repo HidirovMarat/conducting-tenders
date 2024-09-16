@@ -1,6 +1,7 @@
 package v1
 
 import (
+	"conducting-tenders/internal/entity/statusBid"
 	"conducting-tenders/internal/service"
 	"errors"
 	"net/http"
@@ -25,7 +26,7 @@ func newBidsRoutes(g *echo.Group, bidsService service.Bid) *bidsRoutes {
 	g.PATCH("/:bidId/edit", r.editBidByIdAndUsername)
 	//g.PUT("/bids/{bidId}/submit_decision", editSubmitDecisionById)
 	//g.PUT("/bids/{bidId}/feedback", editFeelbackById)
-	g.PUT(":bidId/rollback/:version", r.updateVersionBid)
+	g.PUT("/:bidId/rollback/:version", r.updateVersionBid)
 	//g.GET("/bids/{tenderId}/reviews", getReviewsByTender)
 	return r
 }
@@ -68,7 +69,7 @@ func (r *bidsRoutes) getBidsByUsername(c echo.Context) error {
 	err := c.Bind(&input)
 
 	if err != nil {
-		return 	c.JSON(400, map[string]interface{}{"reason": err.Error()})
+		return c.JSON(400, map[string]interface{}{"reason": err.Error()})
 	}
 
 	if err = c.Validate(input); err != nil {
@@ -174,6 +175,8 @@ func (r *bidsRoutes) updateBidStatusById(c echo.Context) error {
 		c.JSON(400, map[string]interface{}{"reason": err.Error()})
 		return err
 	}
+	input.Username = c.QueryParam("username")
+	input.Status = statusBid.Status(c.QueryParam("status"))
 
 	if err = c.Validate(input); err != nil {
 		c.JSON(400, map[string]interface{}{"reason": err.Error()})
@@ -209,6 +212,7 @@ func (r *bidsRoutes) editBidByIdAndUsername(c echo.Context) error {
 		c.JSON(400, map[string]interface{}{"reason": err.Error()})
 		return err
 	}
+	input.Username = c.QueryParam("username")
 
 	if err = c.Validate(input); err != nil {
 		c.JSON(400, map[string]interface{}{"reason": err.Error()})
@@ -244,6 +248,7 @@ func (r *bidsRoutes) updateVersionBid(c echo.Context) error {
 		c.JSON(400, map[string]interface{}{"reason": err.Error()})
 		return err
 	}
+	input.Username = c.QueryParam("username")
 
 	if err = c.Validate(input); err != nil {
 		c.JSON(400, map[string]interface{}{"reason": err.Error()})

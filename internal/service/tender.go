@@ -77,6 +77,10 @@ func (b *TenderService) GetTendersByUsername(ctx context.Context, input GetTende
 		return []entity.Tender{}, err
 	}
 
+	if input.Limit == 0 {
+		input.Limit = 5
+	}
+
 	tenders, err := b.tenderRepo.GetTendersByOrganizationId(ctx, organizationId, input.Limit, input.Offset)
 
 	if err != nil {
@@ -87,6 +91,10 @@ func (b *TenderService) GetTendersByUsername(ctx context.Context, input GetTende
 }
 
 func (b *TenderService) GetTenders(ctx context.Context, input GetTendersInput) ([]entity.Tender, error) {
+	if input.Limit == 0 {
+		input.Limit = 5
+	}
+
 	tenders, err := b.tenderRepo.GetTenders(ctx, input.ServiceType, input.Limit, input.Offset)
 	if err != nil {
 		return []entity.Tender{}, err

@@ -95,6 +95,10 @@ func (b *BidService) GetBidsByUsername(ctx context.Context, input GetBidsByUsern
 		return []entity.Bid{}, err
 	}
 
+	if input.Limit == 0 {
+		input.Limit = 5
+	}
+
 	bids, err := b.bidRepo.GetBidsByAuthorId(ctx, employee.Id, input.Limit, input.Offset)
 
 	if err != nil {
@@ -123,12 +127,16 @@ func (b *BidService) GetBidsByTenderId(ctx context.Context, input GetBidsByTende
 		return []entity.Bid{}, err
 	}
 
-	bids, err := b.bidRepo.GetBidsByTenderIdAndUserIdAndOrganizationId(ctx, input.TenderId, organizationEmpId , employee.Id, input.Limit, input.Offset)
+	if input.Limit == 0 {
+		input.Limit = 5
+	}
+
+	bids, err := b.bidRepo.GetBidsByTenderIdAndUserIdAndOrganizationId(ctx, input.TenderId, organizationEmpId, employee.Id, input.Limit, input.Offset)
 	if err != nil {
 		if errors.Is(err, repoerrs.ErrNotFound) {
 			return []entity.Bid{}, ErrEmployeeNotFind
 		}
-		return []entity.Bid{}, err	
+		return []entity.Bid{}, err
 	}
 
 	return bids, nil
@@ -162,7 +170,7 @@ func (b *BidService) GetBidStatusById(ctx context.Context, input GetBidStatusByI
 		return "", err
 	}
 
-	if bid.AuthorId != employee.Id || bid.AuthorId != orgaEmpId {
+	if bid.AuthorId != employee.Id && bid.AuthorId != orgaEmpId {
 		return "", ErrNotEnoughRights
 	}
 
@@ -197,7 +205,7 @@ func (b *BidService) UpdateBidStatusById(ctx context.Context, input UpdateBidSta
 		return entity.Bid{}, err
 	}
 
-	if bid.AuthorId != employee.Id || orgaEmpId != bid.AuthorId {
+	if bid.AuthorId != employee.Id && orgaEmpId != bid.AuthorId {
 		return entity.Bid{}, ErrNotEnoughRights
 	}
 
@@ -248,7 +256,7 @@ func (b *BidService) EditBidById(ctx context.Context, input EditBidByIdInput) (e
 		return entity.Bid{}, err
 	}
 
-	if bid.AuthorId != employee.Id || orgaEmpId != bid.AuthorId {
+	if bid.AuthorId != employee.Id && orgaEmpId != bid.AuthorId {
 		return entity.Bid{}, ErrNotEnoughRights
 	}
 
@@ -310,7 +318,7 @@ func (b *BidService) UpdateVersionBid(ctx context.Context, input UpdateVersionBi
 		return entity.Bid{}, err
 	}
 
-	if bid.AuthorId != employee.Id || orgaEmpId != bid.AuthorId {
+	if bid.AuthorId != employee.Id && orgaEmpId != bid.AuthorId {
 		return entity.Bid{}, ErrNotEnoughRights
 	}
 
